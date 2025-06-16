@@ -5,18 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prediksi Niat Beli Pelanggan</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
 
 :root {
-    --primary-color: #4a90e2;
-    --secondary-color: #50e3c2;
-    --background-color: #f4f7f6;
-    --card-background: #ffffff;
-    --text-color: #333;
-    --light-text-color: #777;
-    --border-color: #ddd;
-    --success-color: #28a745;
-    --danger-color: #dc3545;
+    --bg-dark: #1a1a2e;
+    --card-dark: #16213e;
+    --primary-neon: #00fddc;
+    --secondary-neon: #e94560;
+    --text-light: #e1e1e1;
+    --text-muted: #a4a4b1;
+    --border-dark: #2f3b52;
 }
 
 * {
@@ -26,9 +24,9 @@
 }
 
 body {
-    font-family: 'Poppins', sans-serif;
-    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-    color: var(--text-color);
+    font-family: 'Roboto', sans-serif;
+    background-color: var(--bg-dark);
+    color: var(--text-light);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -37,14 +35,13 @@ body {
 }
 
 .card {
-    background: var(--card-background);
-    border-radius: 15px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    background: var(--card-dark);
+    border-radius: 12px;
+    border: 1px solid var(--border-dark);
+    box-shadow: 0 0 40px rgba(0, 253, 220, 0.1);
     width: 100%;
     max-width: 600px;
     padding: 2.5rem;
-    overflow: hidden;
-    transition: all 0.3s ease;
 }
 
 .card-header {
@@ -56,17 +53,17 @@ body {
     font-size: 1.8rem;
     font-weight: 700;
     margin-top: 0.5rem;
-    color: var(--primary-color);
+    color: var(--text-light);
 }
 
 .card-header i {
     font-size: 2.5rem;
-    color: var(--secondary-color);
+    color: var(--primary-neon);
 }
 
 .card-header p {
     font-size: 1rem;
-    color: var(--light-text-color);
+    color: var(--text-muted);
 }
 
 .input-group {
@@ -76,24 +73,31 @@ body {
 .input-group label {
     display: block;
     margin-bottom: 0.5rem;
-    font-weight: 600;
+    font-weight: 500;
     font-size: 0.9rem;
+    color: var(--text-muted);
 }
 
 .input-group input {
     width: 100%;
     padding: 0.8rem 1rem;
-    border: 1px solid var(--border-color);
+    background-color: var(--bg-dark);
+    border: 1px solid var(--border-dark);
+    color: var(--text-light);
     border-radius: 8px;
     font-size: 1rem;
-    font-family: 'Poppins', sans-serif;
+    font-family: 'Roboto', sans-serif;
     transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.input-group input::placeholder {
+    color: #555e70;
 }
 
 .input-group input:focus {
     outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2);
+    border-color: var(--primary-neon);
+    box-shadow: 0 0 15px rgba(0, 253, 220, 0.2);
 }
 
 button {
@@ -101,19 +105,19 @@ button {
     padding: 1rem;
     border: none;
     border-radius: 8px;
-    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-    color: white;
+    background-color: var(--primary-neon);
+    color: #16213e;
     font-size: 1.1rem;
-    font-weight: 600;
-    font-family: 'Poppins', sans-serif;
+    font-weight: 700;
+    font-family: 'Roboto', sans-serif;
     cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: background-color 0.3s, box-shadow 0.3s;
     margin-top: 1rem;
 }
 
 button:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    background-color: #7fffe9;
+    box-shadow: 0 0 20px rgba(0, 253, 220, 0.3);
 }
 
 button i {
@@ -127,7 +131,7 @@ button i {
 
 .result-title {
     font-size: 1.2rem;
-    color: var(--light-text-color);
+    color: var(--text-muted);
     margin-bottom: 1rem;
 }
 
@@ -138,8 +142,8 @@ button i {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
 }
 
 .result-text {
@@ -154,15 +158,15 @@ button i {
 }
 
 .akan-membeli {
-    background-color: rgba(40, 167, 69, 0.1);
-    border: 1px solid var(--success-color);
-    color: var(--success-color);
+    background-color: rgba(0, 253, 220, 0.1);
+    border: 1px solid var(--primary-neon);
+    color: var(--primary-neon);
 }
 
 .tidak-membeli {
-    background-color: rgba(220, 53, 69, 0.1);
-    border: 1px solid var(--danger-color);
-    color: var(--danger-color);
+    background-color: rgba(233, 69, 96, 0.1);
+    border: 1px solid var(--secondary-neon);
+    color: var(--secondary-neon);
 }
         /* --- KODE CSS DARI OPSI YANG ANDA PILIH DITEMPEL DI SINI --- */
     </style>
