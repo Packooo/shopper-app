@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Prediksi Niat Pembelian</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 50px; }
+        input { margin: 5px; padding: 5px; width: 300px; }
+        button { padding: 10px 20px; }
+    </style>
+</head>
+<body>
+    <h1>Form Prediksi Pembelian</h1>
+    <form method="POST" action="/predict">
+        <input type="number" step="any" name="BounceRates" placeholder="BounceRates" required><br>
+        <input type="number" step="any" name="Administrative_Duration" placeholder="Administrative_Duration" required><br>
+        <input type="number" step="any" name="ProductRelated" placeholder="ProductRelated" required><br>
+        <input type="number" step="any" name="ProductRelated_Duration" placeholder="ProductRelated_Duration" required><br>
+        <input type="number" step="any" name="Administrative" placeholder="Administrative" required><br>
+        <input type="number" step="any" name="ExitRates" placeholder="ExitRates" required><br>
+        <input type="number" step="any" name="PageValues" placeholder="PageValues" required><br>
+        <br>
+        <button type="submit">Prediksi</button>
+    </form>
+
+    {% if result %}
+        <h2>Hasil Prediksi: {{ result }}</h2>
+        <p>Probabilitas: {{ prob }}</p>
+    {% endif %}
+</body>
+</html>
