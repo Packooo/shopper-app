@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prediksi Niat Beli Pelanggan</title>
-     <link rel="stylesheet" href="..\static\style.css">
+    <link rel="stylesheet" href="..\static\style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 </head>
+
 <body>
     <div class="card">
         <div class="card-header">
@@ -14,8 +16,8 @@
             <h1>Prediksi Niat Beli Pelanggan</h1>
             <p>Masukkan data sesi pengunjung untuk memprediksi kemungkinan pembelian.</p>
         </div>
-        
-        <form method="POST" action="/predict">
+
+        <form id="prediksiForm" method="POST" action="/predict">
             <div class="input-group">
                 <label for="BounceRates">Bounce Rates</label>
                 <input type="number" step="any" id="BounceRates" name="BounceRates" placeholder="Contoh: 0.02" required>
@@ -30,21 +32,25 @@
             </div>
             <div class="input-group">
                 <label for="ProductRelated">Halaman Produk Dilihat</label>
-                <input type="number" step="any" id="ProductRelated" name="ProductRelated" placeholder="Jumlah halaman produk" required>
+                <input type="number" step="any" id="ProductRelated" name="ProductRelated"
+                    placeholder="Jumlah halaman produk" required>
             </div>
             <div class="input-group">
                 <label for="ProductRelated_Duration">Durasi di Halaman Produk (detik)</label>
-                <input type="number" step="any" id="ProductRelated_Duration" name="ProductRelated_Duration" placeholder="Total durasi" required>
+                <input type="number" step="any" id="ProductRelated_Duration" name="ProductRelated_Duration"
+                    placeholder="Total durasi" required>
             </div>
             <div class="input-group">
                 <label for="Administrative">Halaman Administratif Dilihat</label>
-                <input type="number" step="any" id="Administrative" name="Administrative" placeholder="Jumlah halaman admin" required>
+                <input type="number" step="any" id="Administrative" name="Administrative"
+                    placeholder="Jumlah halaman admin" required>
             </div>
             <div class="input-group">
                 <label for="Administrative_Duration">Durasi di Halaman Admin (detik)</label>
-                <input type="number" step="any" id="Administrative_Duration" name="Administrative_Duration" placeholder="Total durasi" required>
+                <input type="number" step="any" id="Administrative_Duration" name="Administrative_Duration"
+                    placeholder="Total durasi" required>
             </div>
-            
+
             <button type="submit">
                 <i class="fas fa-magic-wand-sparkles"></i> Prediksi Sekarang
             </button>
@@ -60,5 +66,30 @@
         </div>
         {% endif %}
     </div>
+
+    <script>
+        // Jalankan setelah seluruh DOM dimuat
+        window.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('prediksiForm');
+            const inputs = form.querySelectorAll('input');
+
+            // Isi nilai dari localStorage
+            inputs.forEach(input => {
+                const saved = localStorage.getItem(input.name);
+                if (saved !== null) {
+                    input.value = saved;
+                }
+            });
+
+            // Simpan nilai ke localStorage setiap kali input berubah
+            inputs.forEach(input => {
+                input.addEventListener('input', () => {
+                    localStorage.setItem(input.name, input.value);
+                });
+            });
+        });
+    </script>
+
 </body>
+
 </html>
