@@ -73,18 +73,18 @@
             const form = document.getElementById('prediksiForm');
             const inputs = form.querySelectorAll('input');
 
-            // Isi nilai dari localStorage
+            // Isi nilai dari sessionStorage
             inputs.forEach(input => {
-                const saved = localStorage.getItem(input.name);
+                const saved = sessionStorage.getItem(input.name);
                 if (saved !== null) {
                     input.value = saved;
                 }
             });
 
-            // Simpan nilai ke localStorage setiap kali input berubah
+            // Simpan nilai ke sessionStorage setiap kali input berubah
             inputs.forEach(input => {
                 input.addEventListener('input', () => {
-                    localStorage.setItem(input.name, input.value);
+                    sessionStorage.setItem(input.name, input.value);
                 });
             });
         });
