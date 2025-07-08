@@ -20,37 +20,45 @@
         <form id="prediksiForm" method="POST" action="{{ url_for('predict') }}">
             <div class="input-group">
                 <label for="BounceRates">Bounce Rates</label>
-                <input type="number" step="any" id="BounceRates" name="BounceRates" placeholder="Contoh: 0.02" value="{{ form_data.BounceRates }}" required>
+                <input type="number" step="any" id="BounceRates" name="BounceRates" min="0" max="1"
+                    placeholder="Contoh: 0.02" value="{{ form_data.get('BounceRates', '') }}" required>
             </div>
             <div class="input-group">
                 <label for="ExitRates">Exit Rates</label>
-                <input type="number" step="any" id="ExitRates" name="ExitRates" placeholder="Contoh: 0.04" value="{{ form_data.ExitRates }}" required>
+                <input type="number" step="any" id="ExitRates" name="ExitRates" min="0" max="1"
+                    placeholder="Contoh: 0.04" value="{{ form_data.get('ExitRates', '') }}" required>
             </div>
             <div class="input-group">
                 <label for="PageValues">Page Values</label>
-                <input type="number" step="any" id="PageValues" name="PageValues" placeholder="Contoh: 12.5" value="{{ form_data.PageValues }}" required>
+                <input type="number" step="any" id="PageValues" name="PageValues" placeholder="Contoh: 12.5"
+                    value="{{ form_data.get('PageValues', '') }}" required>
             </div>
             <div class="input-group">
                 <label for="ProductRelated">Halaman Produk Dilihat</label>
-                <input type="number" step="any" id="ProductRelated" name="ProductRelated" placeholder="Jumlah halaman produk" value="{{ form_data.ProductRelated }}" required>
+                <input type="number" step="any" id="ProductRelated" name="ProductRelated" min="0"
+                    placeholder="Jumlah halaman produk" value="{{ form_data.get('ProductRelated', '') }}" required>
             </div>
             <div class="input-group">
                 <label for="ProductRelated_Duration">Durasi di Halaman Produk (detik)</label>
-                <input type="number" step="any" id="ProductRelated_Duration" name="ProductRelated_Duration" placeholder="Total durasi" value="{{ form_data.ProductRelated_Duration }}" required>
+                <input type="number" step="any" id="ProductRelated_Duration" name="ProductRelated_Duration" min="0"
+                    placeholder="Total durasi" value="{{ form_data.get('ProductRelated_Duration', '') }}" required>
             </div>
             <div class="input-group">
                 <label for="Administrative">Halaman Administratif Dilihat</label>
-                <input type="number" step="any" id="Administrative" name="Administrative" placeholder="Jumlah halaman admin" value="{{ form_data.Administrative }}" required>
+                <input type="number" step="any" id="Administrative" name="Administrative" min="0"
+                    placeholder="Jumlah halaman admin" value="{{ form_data.get('Administrative', '') }}" required>
             </div>
             <div class="input-group">
                 <label for="Administrative_Duration">Durasi di Halaman Admin (detik)</label>
-                <input type="number" step="any" id="Administrative_Duration" name="Administrative_Duration" placeholder="Total durasi" value="{{ form_data.Administrative_Duration }}" required>
+                <input type="number" step="any" id="Administrative_Duration" name="Administrative_Duration" min="0"
+                    placeholder="Total durasi" value="{{ form_data.get('Administrative_Duration', '') }}" required>
             </div>
 
             <button type="submit">
                 <i class="fas fa-magic-wand-sparkles"></i> Prediksi Sekarang
             </button>
         </form>
+
 
         {% if result %}
         <div class="result-container">
@@ -61,7 +69,7 @@
             </div>
         </div>
         {% elif error %}
-         <div class="result-container">
+        <div class="result-container">
             <h2 class="result-title">Error:</h2>
             <div class="result-box tidak-membeli">
                 <p class="result-text">{{ error }}</p>
@@ -111,4 +119,5 @@
     </script>
 
 </body>
+
 </html>

@@ -32,7 +32,7 @@ FEATURE_COLS = [
 @app.route('/')
 def home():
     """Merender halaman utama."""
-    return render_template('index.html')
+    return render_template('index.html', form_data={})
 
 @app.route('/predict', methods=['POST'])
 def predict():
