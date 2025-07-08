@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prediksi Niat Beli Pelanggan</title>
-    <link rel="stylesheet" href="..\static\style.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 </head>
 
@@ -17,38 +17,34 @@
             <p>Masukkan data sesi pengunjung untuk memprediksi kemungkinan pembelian.</p>
         </div>
 
-        <form id="prediksiForm" method="POST" action="/predict">
+        <form id="prediksiForm" method="POST" action="{{ url_for('predict') }}">
             <div class="input-group">
                 <label for="BounceRates">Bounce Rates</label>
-                <input type="number" step="any" id="BounceRates" name="BounceRates" placeholder="Contoh: 0.02" required>
+                <input type="number" step="any" id="BounceRates" name="BounceRates" placeholder="Contoh: 0.02" value="{{ form_data.BounceRates }}" required>
             </div>
             <div class="input-group">
                 <label for="ExitRates">Exit Rates</label>
-                <input type="number" step="any" id="ExitRates" name="ExitRates" placeholder="Contoh: 0.04" required>
+                <input type="number" step="any" id="ExitRates" name="ExitRates" placeholder="Contoh: 0.04" value="{{ form_data.ExitRates }}" required>
             </div>
             <div class="input-group">
                 <label for="PageValues">Page Values</label>
-                <input type="number" step="any" id="PageValues" name="PageValues" placeholder="Contoh: 12.5" required>
+                <input type="number" step="any" id="PageValues" name="PageValues" placeholder="Contoh: 12.5" value="{{ form_data.PageValues }}" required>
             </div>
             <div class="input-group">
                 <label for="ProductRelated">Halaman Produk Dilihat</label>
-                <input type="number" step="any" id="ProductRelated" name="ProductRelated"
-                    placeholder="Jumlah halaman produk" required>
+                <input type="number" step="any" id="ProductRelated" name="ProductRelated" placeholder="Jumlah halaman produk" value="{{ form_data.ProductRelated }}" required>
             </div>
             <div class="input-group">
                 <label for="ProductRelated_Duration">Durasi di Halaman Produk (detik)</label>
-                <input type="number" step="any" id="ProductRelated_Duration" name="ProductRelated_Duration"
-                    placeholder="Total durasi" required>
+                <input type="number" step="any" id="ProductRelated_Duration" name="ProductRelated_Duration" placeholder="Total durasi" value="{{ form_data.ProductRelated_Duration }}" required>
             </div>
             <div class="input-group">
                 <label for="Administrative">Halaman Administratif Dilihat</label>
-                <input type="number" step="any" id="Administrative" name="Administrative"
-                    placeholder="Jumlah halaman admin" required>
+                <input type="number" step="any" id="Administrative" name="Administrative" placeholder="Jumlah halaman admin" value="{{ form_data.Administrative }}" required>
             </div>
             <div class="input-group">
                 <label for="Administrative_Duration">Durasi di Halaman Admin (detik)</label>
-                <input type="number" step="any" id="Administrative_Duration" name="Administrative_Duration"
-                    placeholder="Total durasi" required>
+                <input type="number" step="any" id="Administrative_Duration" name="Administrative_Duration" placeholder="Total durasi" value="{{ form_data.Administrative_Duration }}" required>
             </div>
 
             <button type="submit">
@@ -58,30 +54,54 @@
 
         {% if result %}
         <div class="result-container">
-            <h2 class="result-title">Hasil Prediksi:</h2>
+            <h2 class="result-title">Hasil Prediksi Manual:</h2>
             <div class="result-box {{ 'akan-membeli' if 'Akan' in result else 'tidak-membeli' }}">
                 <p class="result-text">{{ result }}</p>
                 <p class="prob-text">Probabilitas Pembelian: <strong>{{ (prob * 100)|round(2) }}%</strong></p>
             </div>
         </div>
+        {% elif error %}
+         <div class="result-container">
+            <h2 class="result-title">Error:</h2>
+            <div class="result-box tidak-membeli">
+                <p class="result-text">{{ error }}</p>
+            </div>
+        </div>
         {% endif %}
+
+        <hr class="separator">
+
+        <div class="card-header">
+            <i class="fas fa-file-csv"></i>
+            <h2>Prediksi via Upload CSV</h2>
+            <p>Upload file CSV dengan kolom yang sesuai untuk prediksi massal.</p>
+        </div>
+
+        <form id="uploadForm" method="POST" action="{{ url_for('predict_csv') }}" enctype="multipart/form-data">
+            <div class="input-group">
+                <label for="file">Pilih File CSV</label>
+                <input type="file" id="file" name="file" accept=".csv" required>
+            </div>
+            <button type="submit">
+                <i class="fas fa-upload"></i> Upload dan Prediksi
+            </button>
+        </form>
+
     </div>
 
     <script>
-        // Jalankan setelah seluruh DOM dimuat
         window.addEventListener('DOMContentLoaded', () => {
             const form = document.getElementById('prediksiForm');
+            if (!form) return;
             const inputs = form.querySelectorAll('input');
 
-            // Isi nilai dari sessionStorage
             inputs.forEach(input => {
                 const saved = sessionStorage.getItem(input.name);
-                if (saved !== null) {
+                if (saved !== null && input.value === '') { // Hanya isi jika value kosong
                     input.value = saved;
                 }
             });
 
-            // Simpan nilai ke sessionStorage setiap kali input berubah
             inputs.forEach(input => {
                 input.addEventListener('input', () => {
                     sessionStorage.setItem(input.name, input.value);
@@ -91,5 +111,4 @@
     </script>
 
 </body>
-
 </html>

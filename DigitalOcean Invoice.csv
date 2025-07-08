@@ -1,0 +1,4 @@
+product,group_description,description,hours,start,end,USD,project_name,category
+Droplets,,ubuntu-s-1vcpu-1gb-sgp1-01 (s-1vcpu-1gb),248,2025-05-21 15:52:36 +0000,2025-06-01 00:00:00 +0000,$2.21,first-project,iaas
+Droplets,,VPN (s-2vcpu-4gb-120gb-intel),236,2025-05-22 03:51:31 +0000,2025-06-01 00:00:00 +0000,$11.24,projek kedua,iaas
+Credits,,Promotional Credit from ReferreeNew2209 60 day expiration,,2025-05-01 00:00:00 +0000,2025-05-31 23:59:59 +0000,-$13.45,,iaas
