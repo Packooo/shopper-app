@@ -25,6 +25,7 @@ import joblib  # Memuat model dan scaler dari file (dibutuhkan oleh project ini)
 import numpy as np  # Operasi numerik untuk array fitur
 import pandas as pd  # Membaca dan memproses data CSV
 import io  # Membuat stream di memori untuk output CSV
+import uuid  # Generate ID unik untuk download CSV
 
 # Impor form WTForms untuk validasi input
 from forms import FormPrediksiManual, FormUploadCSV
@@ -70,12 +71,34 @@ def buat_aplikasi():
     # CSRF protection hanya diperlukan untuk app dengan login/session user
     # Azure App Service proxy bisa mengganggu session cookies sehingga CSRF gagal 400
     app.config["WTF_CSRF_ENABLED"] = False
+    # Batas ukuran file upload: 5MB
+    app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
     return app
 
 
 # --- Inisialisasi aplikasi dan model ---
 app = buat_aplikasi()
 model, scaler, threshold = muat_model()
+
+# Penyimpanan sementara hasil CSV di memory (menghindari session cookie yang terbatas ~4KB)
+_csv_download_store = {}
+
+
+@app.errorhandler(413)
+def file_terlalu_besar(e):
+    """Menangani error saat file upload melebihi MAX_CONTENT_LENGTH (5MB)."""
+    # Tidak bisa membuat WTForms di sini karena request.files akan re-raise 413.
+    # Gunakan formdata=None agar Flask-WTF tidak mencoba membaca request data.
+    from werkzeug.datastructures import MultiDict
+
+    kosong = MultiDict()
+    return render_template(
+        "index.html",
+        form_prediksi=FormPrediksiManual(formdata=kosong),
+        form_upload=FormUploadCSV(formdata=kosong),
+        csv_error="Error: Ukuran file melebihi batas maksimum (5MB)",
+    ), 413
+
 
 # --- Daftar kolom fitur yang digunakan model ---
 # Urutan ini HARUS sama dengan urutan saat model dilatih
@@ -254,6 +277,15 @@ def predict_csv():
         # Baca file CSV menjadi DataFrame
         df = pd.read_csv(file)
 
+        # Validasi: CSV tidak boleh kosong (hanya header tanpa data)
+        if df.empty:
+            return render_template(
+                "index.html",
+                form_prediksi=form_prediksi,
+                form_upload=form_upload,
+                csv_error="Error: File CSV kosong (tidak ada baris data)",
+            )
+
         # Validasi: periksa apakah semua kolom fitur ada di CSV
         kolom_hilang = [col for col in FEATURE_COLS if col not in df.columns]
         if kolom_hilang:
@@ -266,6 +298,19 @@ def predict_csv():
 
         # Ambil kolom fitur dengan urutan yang benar
         fitur_df = df[FEATURE_COLS]
+
+        # Validasi: semua kolom fitur harus berisi angka (numerik)
+        for col in FEATURE_COLS:
+            if not pd.to_numeric(fitur_df[col], errors="coerce").notna().all():
+                return render_template(
+                    "index.html",
+                    form_prediksi=form_prediksi,
+                    form_upload=form_upload,
+                    csv_error=f"Error: Kolom '{col}' mengandung nilai non-numerik atau kosong",
+                )
+
+        # Konversi ke numerik (menangani string angka)
+        fitur_df = fitur_df.apply(pd.to_numeric)
 
         # Lakukan prediksi untuk semua baris sekaligus
         probabilitas, prediksi = prediksi_dari_array(fitur_df)
@@ -281,10 +326,13 @@ def predict_csv():
         csv_results = df.to_dict("records")  # List of dicts per-baris
         csv_columns = df.columns.tolist()  # Nama kolom untuk header tabel
 
-        # Simpan CSV hasil ke session untuk fitur download
+        # Simpan CSV hasil di memory server (bukan session cookie)
+        download_id = str(uuid.uuid4())
         output_stream = io.StringIO()
         df.to_csv(output_stream, index=False, encoding="utf-8")
-        session["csv_download"] = output_stream.getvalue()
+        _csv_download_store.clear()  # Bersihkan data lama
+        _csv_download_store[download_id] = output_stream.getvalue()
+        session["csv_download_id"] = download_id
 
         # Hitung ringkasan statistik prediksi
         ringkasan = {
@@ -320,10 +368,11 @@ def predict_csv():
 def download_csv():
     """
     Mengirim file CSV hasil prediksi untuk di-download.
-    Data CSV diambil dari session yang disimpan saat upload.
+    Data CSV diambil dari memory server berdasarkan ID di session.
     """
-    # Ambil data CSV dari session
-    csv_data = session.get("csv_download")
+    # Ambil ID download dari session, lalu ambil data dari memory
+    download_id = session.get("csv_download_id")
+    csv_data = _csv_download_store.get(download_id) if download_id else None
 
     # Jika tidak ada data (belum upload), redirect ke halaman utama
     if not csv_data:
@@ -340,7 +389,7 @@ def download_csv():
 # Entry Point: Menjalankan Aplikasi
 # ======================================
 def jalankan_server():
-    """Memulai server Flask di port 5001 dengan mode debug."""
+    """Memulai server Flask di port 5000 dengan mode debug."""
     app.run(host="0.0.0.0", port=5000, debug=True)
 
 
