@@ -7,7 +7,7 @@ Test suite lengkap yang mencakup:
 - Halaman utama (GET /)
 - Prediksi manual via form (POST /predict)
 - Prediksi massal via upload CSV (POST /upload)
-- Download hasil CSV (GET /download-csv)
+- Download hasil CSV (GET /download-csv) via memory store
 - Fungsi helper (model_siap, prediksi_dari_array)
 - Edge case dan error handling
 
@@ -34,6 +34,7 @@ from app import (
     model_siap,
     prediksi_dari_array,
     jalankan_server,
+    _csv_download_store,
 )
 
 # Impor form WTForms untuk testing validasi
@@ -73,6 +74,35 @@ CSV_VALID = (
     "0.01,30.0,10,200.0,4,0.01,50.0\n"
 )
 
+# CSV besar untuk testing memory store (tidak overflow cookie)
+CSV_BANYAK_BARIS = (
+    "BounceRates,Administrative_Duration,ProductRelated,"
+    "ProductRelated_Duration,Administrative,ExitRates,PageValues\n"
+    + "0.05,60.0,3,30.0,2,0.03,10.0\n" * 100
+)
+
+# CSV hanya header tanpa data
+CSV_KOSONG = (
+    "BounceRates,Administrative_Duration,ProductRelated,"
+    "ProductRelated_Duration,Administrative,ExitRates,PageValues\n"
+)
+
+# CSV dengan nilai non-numerik di kolom fitur
+CSV_NON_NUMERIK = (
+    "BounceRates,Administrative_Duration,ProductRelated,"
+    "ProductRelated_Duration,Administrative,ExitRates,PageValues\n"
+    "0.02,80.0,1,0.0,1,0.02,0.0\n"
+    "abc,80.0,1,0.0,1,0.02,0.0\n"
+)
+
+# CSV dengan nilai kosong (NaN) di kolom fitur
+CSV_DENGAN_NAN = (
+    "BounceRates,Administrative_Duration,ProductRelated,"
+    "ProductRelated_Duration,Administrative,ExitRates,PageValues\n"
+    "0.02,80.0,1,0.0,1,0.02,0.0\n"
+    ",80.0,1,0.0,1,0.02,0.0\n"
+)
+
 
 def buat_file_csv(konten):
     """Helper: membuat tuple file CSV untuk test client multipart form."""
@@ -86,9 +116,12 @@ class BaseTestCase(unittest.TestCase):
         """Siapkan test client Flask dengan CSRF dinonaktifkan."""
         app.config["TESTING"] = True
         # Nonaktifkan CSRF protection untuk testing
-        # (di production, CSRF aktif untuk keamanan)
         app.config["WTF_CSRF_ENABLED"] = False
         self.client = app.test_client()
+
+    def tearDown(self):
+        """Bersihkan memory store setelah setiap test."""
+        _csv_download_store.clear()
 
 
 class TestMuatModel(unittest.TestCase):
@@ -423,6 +456,26 @@ class TestUploadCSV(BaseTestCase):
         html = resp.data.decode()
         self.assertTrue("Akan Membeli" in html or "Tidak Membeli" in html)
 
+    def test_upload_csv_menampilkan_ringkasan(self):
+        """Hasil harus menampilkan ringkasan total, beli, tidak."""
+        data = {"file": buat_file_csv(CSV_VALID)}
+        resp = self.client.post(
+            "/upload", data=data, content_type="multipart/form-data"
+        )
+        html = resp.data.decode()
+        self.assertIn("Total", html)
+        self.assertIn("Beli", html)
+        self.assertIn("Tidak", html)
+
+    def test_upload_csv_menampilkan_probabilitas(self):
+        """Setiap baris hasil harus memiliki kolom probabilitas."""
+        data = {"file": buat_file_csv(CSV_VALID)}
+        resp = self.client.post(
+            "/upload", data=data, content_type="multipart/form-data"
+        )
+        html = resp.data.decode()
+        self.assertIn("Probabilitas_Pembelian", html)
+
     def test_upload_csv_kolom_tidak_lengkap(self):
         """CSV dengan kolom salah harus menampilkan error kolom hilang."""
         csv_salah = "KolomSalah1,KolomSalah2\n1,2\n"
@@ -465,8 +518,19 @@ class TestUploadCSV(BaseTestCase):
         html = resp.data.decode()
         self.assertIn("Hasil Prediksi CSV", html)
 
+    def test_upload_csv_banyak_baris(self):
+        """CSV dengan 100 baris harus berhasil tanpa error cookie overflow."""
+        data = {"file": buat_file_csv(CSV_BANYAK_BARIS)}
+        resp = self.client.post(
+            "/upload", data=data, content_type="multipart/form-data"
+        )
+        self.assertEqual(resp.status_code, 200)
+        html = resp.data.decode()
+        self.assertIn("Hasil Prediksi CSV", html)
+        self.assertIn("100", html)  # Total 100 baris
+
     def test_upload_csv_error_parsing(self):
-        """CSV dengan konten corrupt harus menampilkan pesan error."""
+        """CSV dengan konten corrupt harus menampilkan pesan error non-numerik."""
         csv_corrupt = (
             "BounceRates,Administrative_Duration,ProductRelated,"
             "ProductRelated_Duration,Administrative,ExitRates,PageValues\n"
@@ -477,7 +541,60 @@ class TestUploadCSV(BaseTestCase):
             "/upload", data=data, content_type="multipart/form-data"
         )
         html = resp.data.decode()
-        self.assertIn("Terjadi kesalahan", html)
+        self.assertIn("non-numerik", html)
+
+    def test_upload_csv_kosong_hanya_header(self):
+        """CSV hanya header tanpa data harus menampilkan error kosong."""
+        data = {"file": buat_file_csv(CSV_KOSONG)}
+        resp = self.client.post(
+            "/upload", data=data, content_type="multipart/form-data"
+        )
+        self.assertEqual(resp.status_code, 200)
+        html = resp.data.decode()
+        self.assertIn("kosong", html)
+
+    def test_upload_csv_non_numerik(self):
+        """CSV dengan nilai non-numerik harus menampilkan error spesifik."""
+        data = {"file": buat_file_csv(CSV_NON_NUMERIK)}
+        resp = self.client.post(
+            "/upload", data=data, content_type="multipart/form-data"
+        )
+        self.assertEqual(resp.status_code, 200)
+        html = resp.data.decode()
+        self.assertIn("non-numerik", html)
+        self.assertIn("BounceRates", html)
+
+    def test_upload_csv_dengan_nan(self):
+        """CSV dengan nilai kosong (NaN) harus menampilkan error spesifik."""
+        data = {"file": buat_file_csv(CSV_DENGAN_NAN)}
+        resp = self.client.post(
+            "/upload", data=data, content_type="multipart/form-data"
+        )
+        self.assertEqual(resp.status_code, 200)
+        html = resp.data.decode()
+        self.assertIn("non-numerik", html)
+
+    def test_upload_file_terlalu_besar(self):
+        """File > MAX_CONTENT_LENGTH harus mengembalikan error 413."""
+        original_limit = app.config["MAX_CONTENT_LENGTH"]
+        original_testing = app.config.get("TESTING")
+        original_propagate = app.config.get("PROPAGATE_EXCEPTIONS")
+        app.config["MAX_CONTENT_LENGTH"] = 100  # 100 bytes
+        app.config["TESTING"] = False
+        app.config["PROPAGATE_EXCEPTIONS"] = False
+        try:
+            client = app.test_client()
+            data = {"file": buat_file_csv(CSV_VALID)}
+            resp = client.post(
+                "/upload", data=data, content_type="multipart/form-data"
+            )
+            self.assertEqual(resp.status_code, 413)
+            html = resp.data.decode()
+            self.assertIn("melebihi batas", html)
+        finally:
+            app.config["MAX_CONTENT_LENGTH"] = original_limit
+            app.config["TESTING"] = original_testing
+            app.config["PROPAGATE_EXCEPTIONS"] = original_propagate
 
     def test_model_tidak_siap_saat_upload(self):
         """Jika model tidak siap, upload harus menampilkan error."""
@@ -496,17 +613,68 @@ class TestUploadCSV(BaseTestCase):
         self.assertEqual(resp.status_code, 405)
 
 
+class TestMemoryStore(BaseTestCase):
+    """Test mekanisme penyimpanan CSV di memory server."""
+
+    def test_upload_menyimpan_ke_memory_store(self):
+        """Upload CSV harus menyimpan data ke _csv_download_store."""
+        data = {"file": buat_file_csv(CSV_VALID)}
+        self.client.post("/upload", data=data, content_type="multipart/form-data")
+        self.assertEqual(len(_csv_download_store), 1)
+
+    def test_upload_membersihkan_data_lama(self):
+        """Upload baru harus menghapus data lama dari memory store."""
+        # Upload pertama
+        data1 = {"file": buat_file_csv(CSV_VALID)}
+        self.client.post("/upload", data=data1, content_type="multipart/form-data")
+        self.assertEqual(len(_csv_download_store), 1)
+
+        # Upload kedua — data lama harus terhapus
+        data2 = {"file": buat_file_csv(CSV_VALID)}
+        self.client.post("/upload", data=data2, content_type="multipart/form-data")
+        self.assertEqual(len(_csv_download_store), 1)
+
+    def test_memory_store_berisi_csv_lengkap(self):
+        """Data di memory store harus berisi CSV dengan kolom hasil."""
+        data = {"file": buat_file_csv(CSV_VALID)}
+        self.client.post("/upload", data=data, content_type="multipart/form-data")
+        csv_data = list(_csv_download_store.values())[0]
+        self.assertIn("Hasil_Prediksi", csv_data)
+        self.assertIn("Probabilitas_Pembelian", csv_data)
+
+    def test_session_hanya_simpan_uuid(self):
+        """Session hanya menyimpan UUID, bukan seluruh CSV."""
+        data = {"file": buat_file_csv(CSV_VALID)}
+        with self.client.session_transaction() as sess:
+            sess.clear()
+        self.client.post("/upload", data=data, content_type="multipart/form-data")
+        with self.client.session_transaction() as sess:
+            download_id = sess.get("csv_download_id")
+            self.assertIsNotNone(download_id)
+            # UUID format: 8-4-4-4-12 = 36 karakter
+            self.assertEqual(len(download_id), 36)
+            # Pastikan bukan CSV data (harus UUID pendek)
+            self.assertNotIn("Hasil_Prediksi", download_id)
+
+
 class TestDownloadCSV(BaseTestCase):
-    """Test GET /download-csv — download file hasil prediksi."""
+    """Test GET /download-csv — download file hasil prediksi via memory store."""
 
     def test_download_tanpa_session_redirect(self):
         """Tanpa data di session, harus redirect ke halaman utama."""
         resp = self.client.get("/download-csv")
         self.assertEqual(resp.status_code, 302)
 
+    def test_download_dengan_id_invalid_redirect(self):
+        """Session dengan ID yang tidak ada di store harus redirect."""
+        with self.client.session_transaction() as sess:
+            sess["csv_download_id"] = "id-tidak-ada-di-store"
+        resp = self.client.get("/download-csv")
+        self.assertEqual(resp.status_code, 302)
+
     def test_download_setelah_upload(self):
         """Setelah upload CSV, download harus mengembalikan file CSV."""
-        # Langkah 1: Upload CSV untuk mengisi session
+        # Langkah 1: Upload CSV untuk mengisi memory store
         data = {"file": buat_file_csv(CSV_VALID)}
         self.client.post("/upload", data=data, content_type="multipart/form-data")
 
@@ -517,11 +685,35 @@ class TestDownloadCSV(BaseTestCase):
         # Verifikasi header Content-Type dan Content-Disposition
         self.assertIn("text/csv", resp.content_type)
         self.assertIn("attachment", resp.headers.get("Content-Disposition", ""))
+        self.assertIn("hasil_prediksi.csv", resp.headers.get("Content-Disposition", ""))
 
         # Verifikasi isi CSV mengandung kolom hasil prediksi
         csv_text = resp.data.decode()
         self.assertIn("Hasil_Prediksi", csv_text)
         self.assertIn("Probabilitas_Pembelian", csv_text)
+
+    def test_download_csv_banyak_baris(self):
+        """Download CSV 100 baris harus berhasil (tidak overflow cookie)."""
+        data = {"file": buat_file_csv(CSV_BANYAK_BARIS)}
+        self.client.post("/upload", data=data, content_type="multipart/form-data")
+
+        resp = self.client.get("/download-csv")
+        self.assertEqual(resp.status_code, 200)
+        csv_text = resp.data.decode()
+        # Hitung jumlah baris data (header + 100 baris + newline akhir)
+        baris = csv_text.strip().split("\n")
+        self.assertEqual(len(baris), 101)  # 1 header + 100 data
+
+    def test_download_berulang_kali(self):
+        """Download bisa dilakukan berkali-kali dari satu upload."""
+        data = {"file": buat_file_csv(CSV_VALID)}
+        self.client.post("/upload", data=data, content_type="multipart/form-data")
+
+        resp1 = self.client.get("/download-csv")
+        resp2 = self.client.get("/download-csv")
+        self.assertEqual(resp1.status_code, 200)
+        self.assertEqual(resp2.status_code, 200)
+        self.assertEqual(resp1.data, resp2.data)
 
 
 class TestCSRFErrorHandling(unittest.TestCase):

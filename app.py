@@ -71,6 +71,8 @@ def buat_aplikasi():
     # CSRF protection hanya diperlukan untuk app dengan login/session user
     # Azure App Service proxy bisa mengganggu session cookies sehingga CSRF gagal 400
     app.config["WTF_CSRF_ENABLED"] = False
+    # Batas ukuran file upload: 5MB
+    app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
     return app
 
 
@@ -80,6 +82,23 @@ model, scaler, threshold = muat_model()
 
 # Penyimpanan sementara hasil CSV di memory (menghindari session cookie yang terbatas ~4KB)
 _csv_download_store = {}
+
+
+@app.errorhandler(413)
+def file_terlalu_besar(e):
+    """Menangani error saat file upload melebihi MAX_CONTENT_LENGTH (5MB)."""
+    # Tidak bisa membuat WTForms di sini karena request.files akan re-raise 413.
+    # Gunakan formdata=None agar Flask-WTF tidak mencoba membaca request data.
+    from werkzeug.datastructures import MultiDict
+
+    kosong = MultiDict()
+    return render_template(
+        "index.html",
+        form_prediksi=FormPrediksiManual(formdata=kosong),
+        form_upload=FormUploadCSV(formdata=kosong),
+        csv_error="Error: Ukuran file melebihi batas maksimum (5MB)",
+    ), 413
+
 
 # --- Daftar kolom fitur yang digunakan model ---
 # Urutan ini HARUS sama dengan urutan saat model dilatih
@@ -258,6 +277,15 @@ def predict_csv():
         # Baca file CSV menjadi DataFrame
         df = pd.read_csv(file)
 
+        # Validasi: CSV tidak boleh kosong (hanya header tanpa data)
+        if df.empty:
+            return render_template(
+                "index.html",
+                form_prediksi=form_prediksi,
+                form_upload=form_upload,
+                csv_error="Error: File CSV kosong (tidak ada baris data)",
+            )
+
         # Validasi: periksa apakah semua kolom fitur ada di CSV
         kolom_hilang = [col for col in FEATURE_COLS if col not in df.columns]
         if kolom_hilang:
@@ -270,6 +298,19 @@ def predict_csv():
 
         # Ambil kolom fitur dengan urutan yang benar
         fitur_df = df[FEATURE_COLS]
+
+        # Validasi: semua kolom fitur harus berisi angka (numerik)
+        for col in FEATURE_COLS:
+            if not pd.to_numeric(fitur_df[col], errors="coerce").notna().all():
+                return render_template(
+                    "index.html",
+                    form_prediksi=form_prediksi,
+                    form_upload=form_upload,
+                    csv_error=f"Error: Kolom '{col}' mengandung nilai non-numerik atau kosong",
+                )
+
+        # Konversi ke numerik (menangani string angka)
+        fitur_df = fitur_df.apply(pd.to_numeric)
 
         # Lakukan prediksi untuk semua baris sekaligus
         probabilitas, prediksi = prediksi_dari_array(fitur_df)
