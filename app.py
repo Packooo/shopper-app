@@ -64,8 +64,12 @@ def buat_aplikasi():
         Flask: Instance aplikasi Flask yang sudah dikonfigurasi.
     """
     app = Flask(__name__)
-    # Secret key untuk CSRF protection (WTForms) dan session
+    # Secret key untuk session (cookie-based)
     app.secret_key = "shopper-app-secret-key"
+    # Nonaktifkan CSRF karena app ini tidak memiliki autentikasi/user accounts
+    # CSRF protection hanya diperlukan untuk app dengan login/session user
+    # Azure App Service proxy bisa mengganggu session cookies sehingga CSRF gagal 400
+    app.config["WTF_CSRF_ENABLED"] = False
     return app
 
 
