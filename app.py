@@ -389,7 +389,7 @@ def download_csv():
 # Entry Point: Menjalankan Aplikasi
 # ======================================
 def jalankan_server():
-    """Memulai server Flask di port 5001 dengan mode debug."""
+    """Memulai server Flask di port 5000 dengan mode debug."""
     app.run(host="0.0.0.0", port=5000, debug=True)
 
 
