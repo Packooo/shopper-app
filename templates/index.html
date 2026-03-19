@@ -1,111 +1,254 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="dark">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prediksi Niat Beli Pelanggan</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>ShopPredict — Prediksi Niat Beli Pelanggan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+                    colors: {
+                        brand: { DEFAULT: '#6366f1', light: '#818cf8', dark: '#4f46e5' },
+                        surface: { 1: '#111113', 2: '#19191b', 3: '#222225', 4: '#2b2b2f', 5: '#35353a' },
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.4s ease-out',
+                        'slide-up': 'slideUp 0.4s ease-out',
+                    },
+                    keyframes: {
+                        fadeIn: { from: { opacity: '0' }, to: { opacity: '1' } },
+                        slideUp: { from: { opacity: '0', transform: 'translateY(8px)' }, to: { opacity: '1', transform: 'translateY(0)' } },
+                    },
+                }
+            }
+        }
+    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
+        input[type="file"]::file-selector-button {
+            background: #6366f1; color: white; border: none;
+            padding: 6px 14px; border-radius: 6px; font-size: 13px;
+            font-weight: 500; cursor: pointer; margin-right: 10px;
+            transition: background 0.2s;
+        }
+        input[type="file"]::file-selector-button:hover { background: #818cf8; }
+        .table-scroll::-webkit-scrollbar { height: 6px; }
+        .table-scroll::-webkit-scrollbar-track { background: #222225; border-radius: 3px; }
+        .table-scroll::-webkit-scrollbar-thumb { background: #35353a; border-radius: 3px; }
+        .field-error { border-color: #ef4444 !important; }
+        .field-error:focus { box-shadow: 0 0 0 3px rgba(239,68,68,0.2) !important; }
+    </style>
 </head>
 
-<body>
-    <div class="card">
-        <div class="card-header">
-            <i class="fas fa-chart-line"></i>
-            <h1>Prediksi Niat Beli Pelanggan</h1>
-            <p>Masukkan data sesi pengunjung untuk memprediksi kemungkinan pembelian.</p>
+<body class="bg-surface-1 text-gray-200 font-sans min-h-screen flex flex-col">
+
+    <!-- Navbar -->
+    <nav class="sticky top-0 z-50 bg-surface-2/80 backdrop-blur-xl border-b border-white/5">
+        <div class="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-brand to-purple-500 flex items-center justify-center text-white text-sm">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <span class="font-semibold text-sm text-white">ShopPredict</span>
+            <span class="text-[11px] px-2 py-0.5 rounded-md bg-brand/10 text-brand font-medium">ML v1.0</span>
+        </div>
+    </nav>
+
+    <!-- Main -->
+    <main class="flex-1 max-w-3xl w-full mx-auto px-4 py-8">
+
+        <!-- Hero -->
+        <div class="text-center mb-8">
+            <h1 class="text-2xl font-bold text-white mb-2">Prediksi Niat Beli Pelanggan</h1>
+            <p class="text-gray-400 text-sm max-w-lg mx-auto leading-relaxed">
+                Analisis perilaku pengunjung website untuk memprediksi kemungkinan pembelian menggunakan machine learning.
+            </p>
         </div>
 
-        <form id="prediksiForm" method="POST" action="{{ url_for('predict') }}">
-            <div class="input-group">
-                <label for="BounceRates">Bounce Rates</label>
-                <input type="number" step="any" id="BounceRates" name="BounceRates" min="0" max="1"
-                    placeholder="Contoh: 0.02" value="{{ form_data.get('BounceRates', '') }}" required>
-            </div>
-            <div class="input-group">
-                <label for="ExitRates">Exit Rates</label>
-                <input type="number" step="any" id="ExitRates" name="ExitRates" min="0" max="1"
-                    placeholder="Contoh: 0.04" value="{{ form_data.get('ExitRates', '') }}" required>
-            </div>
-            <div class="input-group">
-                <label for="PageValues">Page Values</label>
-                <input type="number" step="any" id="PageValues" name="PageValues" placeholder="Contoh: 12.5"
-                    value="{{ form_data.get('PageValues', '') }}" required>
-            </div>
-            <div class="input-group">
-                <label for="ProductRelated">Halaman Produk Dilihat</label>
-                <input type="number" step="any" id="ProductRelated" name="ProductRelated" min="0"
-                    placeholder="Jumlah halaman produk" value="{{ form_data.get('ProductRelated', '') }}" required>
-            </div>
-            <div class="input-group">
-                <label for="ProductRelated_Duration">Durasi di Halaman Produk (detik)</label>
-                <input type="number" step="any" id="ProductRelated_Duration" name="ProductRelated_Duration" min="0"
-                    placeholder="Total durasi" value="{{ form_data.get('ProductRelated_Duration', '') }}" required>
-            </div>
-            <div class="input-group">
-                <label for="Administrative">Halaman Administratif Dilihat</label>
-                <input type="number" step="any" id="Administrative" name="Administrative" min="0"
-                    placeholder="Jumlah halaman admin" value="{{ form_data.get('Administrative', '') }}" required>
-            </div>
-            <div class="input-group">
-                <label for="Administrative_Duration">Durasi di Halaman Admin (detik)</label>
-                <input type="number" step="any" id="Administrative_Duration" name="Administrative_Duration" min="0"
-                    placeholder="Total durasi" value="{{ form_data.get('Administrative_Duration', '') }}" required>
-            </div>
+        <!-- Manual Prediction Card -->
+        <div class="bg-surface-2 border border-white/[0.06] rounded-xl p-6 mb-4 animate-fade-in">
+            <h2 class="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+                <i class="fas fa-sliders-h text-brand text-xs"></i>
+                Prediksi Manual
+            </h2>
 
-            <button type="submit">
-                <i class="fas fa-magic-wand-sparkles"></i> Prediksi Sekarang
-            </button>
-        </form>
+            <form id="prediksiForm" method="POST" action="{{ url_for('predict') }}">
+                <!-- CSRF Token dari WTForms -->
+                {{ form_prediksi.hidden_tag() }}
 
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {# Macro untuk render field dengan error #}
+                    {% macro render_field(field, placeholder="", min_val=None, max_val=None, colspan=false) %}
+                    <div{% if colspan %} class="sm:col-span-2"{% endif %}>
+                        <label for="{{ field.id }}" class="block text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-1.5">
+                            {{ field.label.text }}
+                        </label>
+                        <input type="number" step="any"
+                            id="{{ field.id }}" name="{{ field.name }}"
+                            {% if min_val is not none %}min="{{ min_val }}"{% endif %}
+                            {% if max_val is not none %}max="{{ max_val }}"{% endif %}
+                            placeholder="{{ placeholder }}"
+                            value="{{ field.data if field.data is not none and field.data != '' else '' }}"
+                            class="w-full bg-surface-3 border border-white/[0.06] rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand transition {% if field.errors %}field-error{% endif %}">
+                        {% if field.errors %}
+                        <p class="text-red-400 text-[11px] mt-1">{{ field.errors[0] }}</p>
+                        {% endif %}
+                    </div>
+                    {% endmacro %}
 
-        {% if result %}
-        <div class="result-container">
-            <h2 class="result-title">Hasil Prediksi Manual:</h2>
-            <div class="result-box {{ 'akan-membeli' if 'Akan' in result else 'tidak-membeli' }}">
-                <p class="result-text">{{ result }}</p>
-                <p class="prob-text">Probabilitas Pembelian: <strong>{{ (prob * 100)|round(2) }}%</strong></p>
+                    {{ render_field(form_prediksi.BounceRates, placeholder="0.02", min_val=0, max_val=1) }}
+                    {{ render_field(form_prediksi.ExitRates, placeholder="0.04", min_val=0, max_val=1) }}
+                    {{ render_field(form_prediksi.PageValues, placeholder="12.5", min_val=0) }}
+                    {{ render_field(form_prediksi.ProductRelated, placeholder="5", min_val=0) }}
+                    {{ render_field(form_prediksi.ProductRelated_Duration, placeholder="120", min_val=0) }}
+                    {{ render_field(form_prediksi.Administrative, placeholder="2", min_val=0) }}
+                    {{ render_field(form_prediksi.Administrative_Duration, placeholder="30", min_val=0, colspan=true) }}
+                </div>
+
+                <button type="submit"
+                    class="w-full mt-4 py-2.5 rounded-lg bg-brand hover:bg-brand-light text-white text-sm font-semibold transition-all hover:shadow-lg hover:shadow-brand/20 flex items-center justify-center gap-2">
+                    <i class="fas fa-bolt text-xs"></i> Prediksi Sekarang
+                </button>
+            </form>
+
+            {% if result %}
+            <div class="mt-5 animate-slide-up">
+                <p class="text-[11px] font-medium text-gray-400 uppercase tracking-widest text-center mb-3">Hasil Prediksi</p>
+                {% if 'Akan' in result %}
+                <div class="rounded-xl p-5 bg-emerald-500/10 border border-emerald-500/20 text-center">
+                    <p class="text-2xl font-bold text-emerald-400">{{ result }}</p>
+                    <p class="text-sm text-emerald-400/70 mt-1">Probabilitas: <strong>{{ (prob * 100)|round(2) }}%</strong></p>
+                </div>
+                {% else %}
+                <div class="rounded-xl p-5 bg-red-500/10 border border-red-500/20 text-center">
+                    <p class="text-2xl font-bold text-red-400">{{ result }}</p>
+                    <p class="text-sm text-red-400/70 mt-1">Probabilitas: <strong>{{ (prob * 100)|round(2) }}%</strong></p>
+                </div>
+                {% endif %}
             </div>
+            {% elif error %}
+            <div class="mt-5 rounded-xl p-4 bg-red-500/10 border border-red-500/20 text-center animate-slide-up">
+                <p class="text-sm text-red-400">{{ error }}</p>
+            </div>
+            {% endif %}
         </div>
-        {% elif error %}
-        <div class="result-container">
-            <h2 class="result-title">Error:</h2>
-            <div class="result-box tidak-membeli">
-                <p class="result-text">{{ error }}</p>
+
+        <!-- CSV Upload Card -->
+        <div class="bg-surface-2 border border-white/[0.06] rounded-xl p-6 mb-4 animate-fade-in">
+            <h2 class="text-sm font-semibold text-white mb-1 flex items-center gap-2">
+                <i class="fas fa-file-arrow-up text-brand text-xs"></i>
+                Prediksi via CSV
+            </h2>
+            <p class="text-xs text-gray-500 mb-4">
+                Kolom: BounceRates, Administrative_Duration, ProductRelated, ProductRelated_Duration, Administrative, ExitRates, PageValues
+            </p>
+
+            <form id="uploadForm" method="POST" action="{{ url_for('predict_csv') }}" enctype="multipart/form-data">
+                <!-- CSRF Token dari WTForms -->
+                {{ form_upload.hidden_tag() }}
+
+                <div>
+                    <label for="file" class="block text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-1.5">File CSV</label>
+                    <input type="file" id="file" name="file" accept=".csv"
+                        class="w-full bg-surface-3 border border-white/[0.06] rounded-lg px-3 py-2 text-sm text-gray-300 file:mr-3 focus:outline-none focus:ring-2 focus:ring-brand/40 transition {% if form_upload.file.errors %}field-error{% endif %}">
+                    {% if form_upload.file.errors %}
+                    <p class="text-red-400 text-[11px] mt-1">{{ form_upload.file.errors[0] }}</p>
+                    {% endif %}
+                </div>
+                <button type="submit"
+                    class="w-full mt-4 py-2.5 rounded-lg bg-transparent border border-white/[0.08] hover:border-brand/50 hover:bg-brand/5 text-brand text-sm font-semibold transition-all flex items-center justify-center gap-2">
+                    <i class="fas fa-upload text-xs"></i> Upload dan Prediksi
+                </button>
+            </form>
+
+            {% if csv_error %}
+            <div class="mt-5 rounded-xl p-4 bg-red-500/10 border border-red-500/20 text-center animate-slide-up">
+                <p class="text-sm text-red-400">{{ csv_error }}</p>
             </div>
-        </div>
-        {% endif %}
+            {% endif %}
 
-        <hr class="separator">
+            {% if csv_results %}
+            <div class="mt-5 animate-slide-up">
+                <p class="text-[11px] font-medium text-gray-400 uppercase tracking-widest text-center mb-3">Hasil Prediksi CSV</p>
 
-        <div class="card-header">
-            <i class="fas fa-file-csv"></i>
-            <h2>Prediksi via Upload CSV</h2>
-            <p>Upload file CSV dengan kolom yang sesuai untuk prediksi massal.</p>
-        </div>
+                <!-- Summary -->
+                <div class="grid grid-cols-3 gap-2 mb-4">
+                    <div class="bg-surface-3 border border-white/[0.06] rounded-xl p-3 text-center">
+                        <span class="block text-2xl font-bold text-white">{{ csv_summary.total }}</span>
+                        <span class="block text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">Total</span>
+                    </div>
+                    <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 text-center">
+                        <span class="block text-2xl font-bold text-emerald-400">{{ csv_summary.beli }}</span>
+                        <span class="block text-[10px] text-emerald-400/60 uppercase tracking-wider mt-0.5">Beli</span>
+                    </div>
+                    <div class="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-center">
+                        <span class="block text-2xl font-bold text-red-400">{{ csv_summary.tidak }}</span>
+                        <span class="block text-[10px] text-red-400/60 uppercase tracking-wider mt-0.5">Tidak</span>
+                    </div>
+                </div>
 
-        <form id="uploadForm" method="POST" action="{{ url_for('predict_csv') }}" enctype="multipart/form-data">
-            <div class="input-group">
-                <label for="file">Pilih File CSV</label>
-                <input type="file" id="file" name="file" accept=".csv" required>
+                <!-- Download -->
+                <div class="text-center mb-4">
+                    <a href="{{ url_for('download_csv') }}"
+                        class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-medium text-brand border border-white/[0.08] hover:border-brand/50 hover:bg-brand/5 transition">
+                        <i class="fas fa-download"></i> Download CSV
+                    </a>
+                </div>
+
+                <!-- Table -->
+                <div class="table-scroll overflow-x-auto rounded-xl border border-white/[0.06]">
+                    <table class="w-full text-xs">
+                        <thead>
+                            <tr class="bg-surface-3">
+                                <th class="px-3 py-2.5 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider">No</th>
+                                {% for col in csv_columns %}
+                                <th class="px-3 py-2.5 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider whitespace-nowrap">{{ col }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-white/[0.04]">
+                            {% for row in csv_results %}
+                            <tr class="hover:bg-white/[0.02] transition-colors">
+                                <td class="px-3 py-2 text-gray-400">{{ loop.index }}</td>
+                                {% for col in csv_columns %}
+                                <td class="px-3 py-2 whitespace-nowrap {% if col == 'Hasil_Prediksi' %}font-semibold {{ 'text-emerald-400' if row[col] == 'Akan Membeli' else 'text-red-400' }}{% else %}text-gray-300{% endif %}">
+                                    {{ row[col] }}
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
-            <button type="submit">
-                <i class="fas fa-upload"></i> Upload dan Prediksi
-            </button>
-        </form>
+            {% endif %}
+        </div>
 
-    </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center py-5 text-xs text-gray-600 border-t border-white/[0.04]">
+        Dataset: <a href="https://archive.ics.uci.edu/dataset/468/online+shoppers+purchasing+intention+dataset" target="_blank" class="text-brand hover:underline">UCI ML Repository</a>
+        &middot; Built with Flask &amp; scikit-learn
+    </footer>
 
     <script>
         window.addEventListener('DOMContentLoaded', () => {
             const form = document.getElementById('prediksiForm');
             if (!form) return;
-            const inputs = form.querySelectorAll('input');
+            // Hanya simpan input numerik (abaikan hidden csrf token)
+            const inputs = form.querySelectorAll('input[type="number"]');
 
             inputs.forEach(input => {
                 const saved = sessionStorage.getItem(input.name);
-                if (saved !== null && input.value === '') { // Hanya isi jika value kosong
+                if (saved !== null && input.value === '') {
                     input.value = saved;
                 }
             });
