@@ -546,15 +546,15 @@ class TestCSRFErrorHandling(unittest.TestCase):
         # Harus ada Error, tapi bukan pesan tentang csrf_token
         self.assertIn("Error", html)
 
-    def test_upload_csv_tanpa_csrf_tetap_berhasil(self):
-        """POST /upload tanpa CSRF tetap berhasil (tidak pakai WTForms)."""
+    def test_upload_csv_csrf_invalid(self):
+        """POST /upload tanpa CSRF token harus menampilkan error validasi."""
         data = {"file": buat_file_csv(CSV_VALID)}
         resp = self.client.post(
             "/upload", data=data, content_type="multipart/form-data"
         )
         self.assertEqual(resp.status_code, 200)
         html = resp.data.decode()
-        self.assertIn("Hasil Prediksi CSV", html)
+        self.assertIn("Error", html)
 
 
 class TestEntryPoint(unittest.TestCase):
