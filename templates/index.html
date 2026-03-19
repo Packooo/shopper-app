@@ -119,7 +119,7 @@
             </form>
 
             {% if result %}
-            <div class="mt-5 animate-slide-up">
+            <div id="hasil-prediksi" class="mt-5 animate-slide-up">
                 <p class="text-[11px] font-medium text-gray-400 uppercase tracking-widest text-center mb-3">Hasil Prediksi</p>
                 {% if 'Akan' in result %}
                 <div class="rounded-xl p-5 bg-emerald-500/10 border border-emerald-500/20 text-center">
@@ -175,7 +175,7 @@
             {% endif %}
 
             {% if csv_results %}
-            <div class="mt-5 animate-slide-up">
+            <div id="hasil-csv" class="mt-5 animate-slide-up">
                 <p class="text-[11px] font-medium text-gray-400 uppercase tracking-widest text-center mb-3">Hasil Prediksi CSV</p>
 
                 <!-- Summary -->
@@ -241,9 +241,17 @@
 
     <script>
         window.addEventListener('DOMContentLoaded', () => {
+            // Auto-scroll ke hasil prediksi jika ada
+            const hasilPrediksi = document.getElementById('hasil-prediksi');
+            const hasilCSV = document.getElementById('hasil-csv');
+            const target = hasilCSV || hasilPrediksi;
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            // Session storage untuk menyimpan input form
             const form = document.getElementById('prediksiForm');
             if (!form) return;
-            // Hanya simpan input numerik (abaikan hidden csrf token)
             const inputs = form.querySelectorAll('input[type="number"]');
 
             inputs.forEach(input => {
