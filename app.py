@@ -25,6 +25,7 @@ import joblib  # Memuat model dan scaler dari file (dibutuhkan oleh project ini)
 import numpy as np  # Operasi numerik untuk array fitur
 import pandas as pd  # Membaca dan memproses data CSV
 import io  # Membuat stream di memori untuk output CSV
+import uuid  # Generate ID unik untuk download CSV
 
 # Impor form WTForms untuk validasi input
 from forms import FormPrediksiManual, FormUploadCSV
@@ -76,6 +77,9 @@ def buat_aplikasi():
 # --- Inisialisasi aplikasi dan model ---
 app = buat_aplikasi()
 model, scaler, threshold = muat_model()
+
+# Penyimpanan sementara hasil CSV di memory (menghindari session cookie yang terbatas ~4KB)
+_csv_download_store = {}
 
 # --- Daftar kolom fitur yang digunakan model ---
 # Urutan ini HARUS sama dengan urutan saat model dilatih
@@ -291,10 +295,13 @@ def predict_csv():
         csv_results = df.to_dict("records")  # List of dicts per-baris
         csv_columns = df.columns.tolist()  # Nama kolom untuk header tabel
 
-        # Simpan CSV hasil ke session untuk fitur download
+        # Simpan CSV hasil di memory server (bukan session cookie)
+        download_id = str(uuid.uuid4())
         output_stream = io.StringIO()
         df.to_csv(output_stream, index=False, encoding="utf-8")
-        session["csv_download"] = output_stream.getvalue()
+        _csv_download_store.clear()  # Bersihkan data lama
+        _csv_download_store[download_id] = output_stream.getvalue()
+        session["csv_download_id"] = download_id
 
         # Hitung ringkasan statistik prediksi
         ringkasan = {
@@ -330,10 +337,11 @@ def predict_csv():
 def download_csv():
     """
     Mengirim file CSV hasil prediksi untuk di-download.
-    Data CSV diambil dari session yang disimpan saat upload.
+    Data CSV diambil dari memory server berdasarkan ID di session.
     """
-    # Ambil data CSV dari session
-    csv_data = session.get("csv_download")
+    # Ambil ID download dari session, lalu ambil data dari memory
+    download_id = session.get("csv_download_id")
+    csv_data = _csv_download_store.get(download_id) if download_id else None
 
     # Jika tidak ada data (belum upload), redirect ke halaman utama
     if not csv_data:
